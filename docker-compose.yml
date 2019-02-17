@@ -62,6 +62,9 @@ services:
       - type: bind
         source: /apps/data/teamcity-agent
         target: /data/teamcity_agent/conf
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
     environment:
       - SERVER_URL=teamcity-server:8111
 
