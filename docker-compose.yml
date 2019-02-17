@@ -60,13 +60,15 @@ services:
       - bridged-net
     volumes:
       - type: bind
-        source: /apps/data/teamcity-agent
+        source: /apps/data/teamcity-agent/conf
         target: /data/teamcity_agent/conf
       - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
+        source: /apps/data/teamcity_agent/docker_volumes
+        target: /var/lib/docker
+    privileged: true
     environment:
       - SERVER_URL=teamcity-server:8111
+      - DOCKER_IN_DOCKER=start
 
   # The GIT server
   gitlab-ce:
