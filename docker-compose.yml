@@ -1,0 +1,92 @@
+version: "3.2"
+
+# There are a bunch of volume bindings which tells docker to 
+# use the 'source' directory from the host running docker
+# and bind it to the directory inside the container.
+# This keeps the data stored on disk persisted between container
+# runs.
+
+# The 'port' syntax technically doesn't need quotes around it
+# but I encountered weird errors where it didn't recognise
+# certain values as strings, e.g. "11022:22" in the gitlab-ce
+# declaration.
+
+# We need a bridged network to link the containers together
+networks:
+  bridged-net:
+    driver: bridge
+
+services:
+  # We need a mysql database to hold the teamcity data
+  mysql-server:
+    image: mysql:8.0.15
+    ports:
+      - "3306:3306"
+      - "33060:33060"
+    hostname: mysql-server
+    networks:
+      - bridged-net
+    volumes:
+      - type: bind
+        source: /apps/data/mysql-server
+        target: /var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=teamcity
+      - MYSQL_USER=teamcity
+      - MYSQL_PASSWORD=teamcity
+
+  # Out of the box teamcity config. 
+  teamcity-server:
+    image: jetbrains/teamcity-server
+    ports:
+      - "10000:8111"
+    hostname: teamcity-server
+    networks:
+      - bridged-net
+    volumes:
+      - type: bind
+        source: /apps/data/teamcity-server
+        target: /data/teamcity_server/datadir
+      - type: bind
+        source: /apps/logs/teamcity-server
+        target: /opt/teamcity/logs
+
+  # Out of the box teamcity agent
+  teamcity-agent:
+    image: jetbrains/teamcity-agent
+    hostname: teamcity-agent
+    networks:
+      - bridged-net
+    volumes:
+      - type: bind
+        source: /apps/data/teamcity-agent/conf
+        target: /data/teamcity_agent/conf
+      - type: bind
+        source: /apps/data/teamcity_agent/docker_volumes
+        target: /var/lib/docker
+    privileged: true
+    environment:
+      - SERVER_URL=teamcity-server:8111
+      - DOCKER_IN_DOCKER=start
+
+  # The GIT server
+  gitlab-ce:
+    image: gitlab/gitlab-ce:latest
+    ports:
+      - "11443:443"
+      - "11080:80"
+      - "11022:22"
+    hostname: gitlab-ce
+    networks:
+      - bridged-net
+    volumes:
+      - type: bind
+        source: /apps/data/gitlab-ce/config
+        target: /etc/gitlab
+      - type: bind
+        source: /apps/logs/gitlab-ce
+        target: /var/log/gitlab
+      - type: bind
+        source: /apps/data/gitlab-ce/data
+        target: /var/opt/gitlab
