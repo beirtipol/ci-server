@@ -20,6 +20,7 @@ services:
   # We need a mysql database to hold the teamcity data
   mysql-server:
     image: mysql:8.0.15
+    container_name: mysql
     ports:
       - "3306:3306"
       - "33060:33060"
@@ -39,6 +40,7 @@ services:
   # Out of the box teamcity config. 
   teamcity-server:
     image: jetbrains/teamcity-server
+    container_name: teamcity-server
     ports:
       - "10000:8111"
     hostname: teamcity-server
@@ -55,6 +57,7 @@ services:
   # Out of the box teamcity agent
   teamcity-agent:
     image: jetbrains/teamcity-agent
+    container_name: teamcity-agent
     hostname: teamcity-agent
     networks:
       - bridged-net
@@ -73,6 +76,7 @@ services:
   # The GIT server
   gitlab-ce:
     image: gitlab/gitlab-ce:latest
+    container_name: gitlab-ce
     ports:
       - "11443:443"
       - "11080:80"
@@ -90,3 +94,23 @@ services:
       - type: bind
         source: /apps/data/gitlab-ce/data
         target: /var/opt/gitlab
+
+  # Taken from the artifactory Github
+  artifactory:
+    image: docker.bintray.io/jfrog/artifactory-oss:6.11.1
+    container_name: artifactory
+    ports:
+     - 8081:8081
+    volumes:
+     - type: bind
+       source: /apps/data/artifactory
+       target: /var/opt/jfrog/artifactory
+#    Add extra Java options by uncommenting the following lines
+#    environment:
+#     - EXTRA_JAVA_OPTIONS=-Xmx4g
+    restart: always
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
